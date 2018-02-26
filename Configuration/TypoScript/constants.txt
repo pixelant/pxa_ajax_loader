@@ -1,0 +1,10 @@
+plugin.tx_pxaajaxloader {
+	view {
+		# cat=plugin.tx_pxaajaxloader/file; type=string; label=Path to template root (FE)
+		templateRootPath = EXT:pxa_ajax_loader/Resources/Private/Templates/
+		# cat=plugin.tx_pxaajaxloader/file; type=string; label=Path to template partials (FE)
+		partialRootPath = EXT:pxa_ajax_loader/Resources/Private/Partials/
+		# cat=plugin.tx_pxaajaxloader/file; type=string; label=Path to template layouts (FE)
+		layoutRootPath = EXT:pxa_ajax_loader/Resources/Private/Layouts/
+	}
+}

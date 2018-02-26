@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<xliff version="1.0">
+    <file source-language="en" datatype="plaintext" original="messages" date="2018-01-26T11:47:18Z" product-name="pxa_ajax_loader">
+        <header/>
+        <body>
+            <trans-unit id="plugin.title">
+                <source>Ajax loader</source>
+            </trans-unit>
+            <trans-unit id="plugin.description">
+                <source>Load non-cached content with ajax</source>
+            </trans-unit>
+        </body>
+    </file>
+</xliff>

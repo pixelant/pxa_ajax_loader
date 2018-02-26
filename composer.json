@@ -1,0 +1,21 @@
+{
+  "name": "pixelant/pxa-ajax-loader",
+  "type": "typo3-cms-extension",
+  "description": "Load content with ajax",
+  "require": {
+    "typo3/cms-core": ">=8.6.0,<9.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Pixelant\\PxaAjaxLoader\\": "Classes/"
+    }
+  },
+  "replace": {
+    "pxa_ajax_loader": "self.version",
+    "typo3-ter/pxa_ajax_loader": "self.version"
+  },
+  "autoload-dev": {
+    "psr-4": {
+    }
+  }
+}

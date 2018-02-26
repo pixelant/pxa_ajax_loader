@@ -1,0 +1,47 @@
+<T3DataStructure>
+    <sheets>
+        <sDEF>
+            <ROOT>
+                <TCEforms>
+                    <sheetTitle>Settings</sheetTitle>
+                </TCEforms>
+                <type>array</type>
+                <el>
+                    <settings.pageType>
+                        <TCEforms>
+                            <label>Page type</label>
+                            <config>
+                                <type>input</type>
+                                <size>10</size>
+                                <eval>required,int</eval>
+                            </config>
+                        </TCEforms>
+                    </settings.pageType>
+
+                    <settings.bgColor>
+                        <TCEforms>
+                            <label>Color for ajax loading circle (HEX code)</label>
+                            <config>
+                                <type>input</type>
+                                <size>10</size>
+                                <eval>trim</eval>
+                                <wizards>
+                                    <_PADDING>2</_PADDING>
+                                    <color>
+                                        <type>colorbox</type>
+                                        <title>Color:</title>
+                                        <dim>16×12</dim>
+                                        <module type="array">
+                                            <name>wizard_colorpicker</name>
+                                        </module>
+                                        <JSopenParams>height=600,width=600,status=0,menubar=0,scrollbars=1</JSopenParams>
+                                    </color>
+                                </wizards>
+                            </config>
+                        </TCEforms>
+                    </settings.bgColor>
+                </el>
+            </ROOT>
+        </sDEF>
+    </sheets>
+</T3DataStructure>

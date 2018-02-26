@@ -1,0 +1,40 @@
+plugin.tx_pxaajaxloader {
+    view {
+        templateRootPaths {
+            10 = {$plugin.tx_pxaajaxloader.view.templateRootPath}
+        }
+
+        partialRootPaths {
+            10 = {$plugin.tx_pxaajaxloader.view.partialRootPath}
+        }
+
+        layoutRootPaths {
+            10 = {$plugin.tx_pxaajaxloader.view.layoutRootPath}
+        }
+    }
+}
+
+page.includeJSFooter {
+    pxa_ajax_loader = EXT:pxa_pagetype_ajax_loader/Resources/Public/Js/pxa_ajax_loader.js
+}
+
+page.includeCSS {
+    pxa_ajax_loader = EXT:pxa_pagetype_ajax_loader/Resources/Public/Css/pxa_ajax_loader.css
+}
+
+
+lib.pageTypeAjaxLoader = COA
+lib.pageTypeAjaxLoader {
+    10 = USER
+    10 {
+        userFunc = TYPO3\CMS\Extbase\Core\Bootstrap->run
+        extensionName = PxaPagetypeAjaxLoader
+        pluginName = PxaPagetypeAjaxLoader
+        vendorName = Pixelant
+
+        # page type to load
+        #settings {
+        #    pageType = 111
+        #}
+    }
+}
