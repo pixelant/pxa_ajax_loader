@@ -13,3 +13,10 @@ defined('TYPO3_MODE') || die('Access denied');
         'AjaxJsonLoader' => 'load'
     ]
 );
+
+// Add plugin to content element wizard
+\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPageTSConfig(
+// @codingStandardsIgnoreStart
+    '<INCLUDE_TYPOSCRIPT: source="FILE:EXT:pxa_ajax_loader/Configuration/TSconfig/ContentElementWizard.ts">'
+// @codingStandardsIgnoreEnd
+);

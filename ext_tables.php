@@ -1,13 +1,6 @@
 <?php
 defined('TYPO3_MODE') || die('Access denied');
 
-// Add plugin to content element wizard
-\TYPO3\CMS\Core\Utility\ExtensionManagementUtility::addPageTSConfig(
-// @codingStandardsIgnoreStart
-    '<INCLUDE_TYPOSCRIPT: source="FILE:EXT:pxa_ajax_loader/Configuration/TSconfig/ContentElementWizard.ts">'
-// @codingStandardsIgnoreEnd
-);
-
 call_user_func(function () {
     if (TYPO3_MODE === 'BE') {
         /** @var \TYPO3\CMS\Core\Imaging\IconRegistry $iconRegistry */
@@ -21,3 +14,7 @@ call_user_func(function () {
         );
     }
 });
+
+// Page BE view hook
+$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['cms/layout/class.tx_cms_layout.php']['list_type_Info']['pxaajaxloader_loader'][$_EXTKEY] =
+    \Pixelant\PxaAjaxLoader\Hooks\PageLayoutViewHook::class . '->render';
