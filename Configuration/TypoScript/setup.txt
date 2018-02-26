@@ -12,29 +12,49 @@ plugin.tx_pxaajaxloader {
             10 = {$plugin.tx_pxaajaxloader.view.layoutRootPath}
         }
     }
+
+    settings {
+        pageType = {$plugin.tx_pxaajaxloader.settings.pageType}
+    }
 }
 
-page.includeJSFooter {
-    pxa_ajax_loader = EXT:pxa_pagetype_ajax_loader/Resources/Public/Js/pxa_ajax_loader.js
+page {
+    includeJSFooterlibs {
+        pxa_ajax_loader = EXT:pxa_ajax_loader/Resources/Public/Js/plugin/pxa_ajax_loader.js
+    }
+    includeJSFooter {
+        pxa_ajax_loader_init = EXT:pxa_ajax_loader/Resources/Public/Js/init.js
+    }
+    includeCSS {
+        pxa_ajax_loader = EXT:pxa_ajax_loader/Resources/Public/Css/pxa_ajax_loader.css
+    }
 }
 
-page.includeCSS {
-    pxa_ajax_loader = EXT:pxa_pagetype_ajax_loader/Resources/Public/Css/pxa_ajax_loader.css
-}
+PXA_AJAX_LOADER = PAGE
+PXA_AJAX_LOADER {
+    typeNum = {$plugin.tx_pxaajaxloader.settings.pageType}
 
+    config {
+        disableAllHeaderCode = 1
+        admPanel = 0
+        debug = 0
+    }
 
-lib.pageTypeAjaxLoader = COA
-lib.pageTypeAjaxLoader {
     10 = USER
     10 {
         userFunc = TYPO3\CMS\Extbase\Core\Bootstrap->run
-        extensionName = PxaPagetypeAjaxLoader
-        pluginName = PxaPagetypeAjaxLoader
+        extensionName = PxaAjaxLoader
+        pluginName = Loader
         vendorName = Pixelant
 
-        # page type to load
-        #settings {
-        #    pageType = 111
-        #}
+        settings =< plugin.tx_pxaajaxloader.settings
+        persistence =< plugin.tx_pxaajaxloader.persistence
+        view =< plugin.tx_pxaajaxloader.view
+
+        switchableControllerActions {
+            AjaxJsonLoader {
+                1 = load
+            }
+        }
     }
 }

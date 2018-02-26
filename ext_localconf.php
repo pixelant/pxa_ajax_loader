@@ -5,10 +5,11 @@ defined('TYPO3_MODE') || die('Access denied');
     'Pixelant.' . $_EXTKEY,
     'Loader',
     [
-        'AjaxLoader' => 'placeholder, load'
+        'AjaxLoader' => 'placeholder',
+        'AjaxJsonLoader' => 'load'
     ],
     // non-cacheable actions
     [
-        'AjaxLoader' => 'load'
+        'AjaxJsonLoader' => 'load'
     ]
 );
