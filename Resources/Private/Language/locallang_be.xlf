@@ -9,6 +9,12 @@
             <trans-unit id="plugin.description">
                 <source>Load non-cached content with ajax</source>
             </trans-unit>
+            <trans-unit id="tca.tab">
+                <source>Ajax container</source>
+            </trans-unit>
+            <trans-unit id="tca.field">
+                <source>Ajax plugin</source>
+            </trans-unit>
         </body>
     </file>
 </xliff>

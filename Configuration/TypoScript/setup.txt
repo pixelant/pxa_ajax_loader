@@ -52,7 +52,7 @@ PXA_AJAX_LOADER {
         view =< plugin.tx_pxaajaxloader.view
 
         switchableControllerActions {
-            AjaxJsonLoader {
+            AjaxLoader {
                 1 = load
             }
         }

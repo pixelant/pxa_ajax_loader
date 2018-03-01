@@ -14,7 +14,13 @@ call_user_func(function () {
         );
     }
 });
+if (TYPO3_MODE === 'BE') {
+    // Page BE view hook
+    // @codingStandardsIgnoreStart
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['cms/layout/class.tx_cms_layout.php']['list_type_Info']['pxaajaxloader_loader'][$_EXTKEY] =
+        \Pixelant\PxaAjaxLoader\Hooks\PageLayoutViewHook::class . '->render';
 
-// Page BE view hook
-$GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['cms/layout/class.tx_cms_layout.php']['list_type_Info']['pxaajaxloader_loader'][$_EXTKEY] =
-    \Pixelant\PxaAjaxLoader\Hooks\PageLayoutViewHook::class . '->render';
+    // New item link hook
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['cms']['db_new_content_el']['wizardItemsHook'][$_EXTKEY] = \Pixelant\PxaAjaxLoader\Hooks\WizardItems::class;
+    // @codingStandardsIgnoreEnd
+}

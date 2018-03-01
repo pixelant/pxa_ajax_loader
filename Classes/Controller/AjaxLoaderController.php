@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
+
 namespace Pixelant\PxaAjaxLoader\Controller;
 
+use Pixelant\PxaAjaxLoader\Hooks\PageLayoutViewHook;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
@@ -40,8 +42,50 @@ class AjaxLoaderController extends ActionController
 
         $this->view->assign(
             'url',
-            $uriBuilder->uriFor('load', ['pluginUid' => $this->getPluginUid()], 'AjaxJsonLoader')
+            $uriBuilder->uriFor('load', ['pluginUid' => $this->getPluginUid()])
         );
+    }
+
+    /**
+     * Load content
+     *
+     * @param int $pluginUid
+     * @return void
+     */
+    public function loadAction(int $pluginUid)
+    {
+        $this->view->assign('html', $this->renderAjaxContent($pluginUid));
+    }
+
+    /**
+     * Render content inside
+     *
+     * @param int $pluginUid
+     * @return string
+     * @throws \Exception
+     * @throws \TYPO3\CMS\Frontend\ContentObject\Exception\ContentRenderingException
+     */
+    protected function renderAjaxContent(int $pluginUid)
+    {
+        $content = '';
+        $cObj = $this->configurationManager->getContentObject();
+        /** @var TypoScriptFrontendController $tsfe */
+        $tsfe = $GLOBALS['TSFE'];
+
+        $ttContentConfig = [
+            'table' => 'tt_content',
+            'select.' => [
+                'pidInList' => $tsfe->id,
+                'orderBy' => 'sorting',
+                'where' => 'colPos=' . PageLayoutViewHook::COL_POS .
+                    ' AND ' . PageLayoutViewHook::DB_FIELD_CONTAINER_NAME . '=' . (int)$pluginUid,
+                'languageField' => 'sys_language_uid'
+            ],
+        ];
+
+        $content .= $cObj->render($cObj->getContentObject('CONTENT'), $ttContentConfig);
+
+        return $content;
     }
 
     /**
