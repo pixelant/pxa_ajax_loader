@@ -39,6 +39,25 @@ class PageLayoutViewHook
      */
     const COL_POS = -98;
 
+    protected $templates = [
+        'main' => '
+<div class="t3-grid-container">
+    <table border="0" cellspacing="0" cellpadding="0" width="100%%" class="t3-page-columns t3-grid-table t3js-page-columns">
+       <colgroup><col></colgroup>
+       <tbody>
+            <tr>
+                <td valign="top" colspan="1" rowspan="1" data-colpos="%1$d" data-language-uid="%2$d" class="t3js-page-lang-column-%2$d t3js-page-column t3-grid-cell t3-page-column">
+                    <div class="t3-page-column-header">%3$s</div>
+                    %4$s
+                </td>
+            </tr>
+       </tbody>
+    </table>          
+</div>
+        ',
+        'link' => '<a href="%s" title="%s" class="btn btn-default btn-sm">%s %s</a>'
+    ];
+
     /**
      * Show hidden records
      *
@@ -85,17 +104,13 @@ class PageLayoutViewHook
 
         $columnHtml = $this->renderAjaxContentArea($pageLayoutView, $params['row']);
 
-        // @codingStandardsIgnoreStart
-        $out = '<div class="t3-page-column-header">
-					<div class="t3-page-column-header-label">' . $this->getLanguageService()->sL($label) . '</div>
-				</div>';
-        $out .= '<div class="t3-grid-container t3-grid-element-container">';
-        $out .= '<table border="0" cellspacing="0" cellpadding="0" width="100%" height="100%" class="t3-page-columns t3-grid-table">';
-        $out .= '<tr><td valign="top" class="t3-grid-cell t3-page-column t3-page-column-0">' . $columnHtml . '</td></tr>';
-        $out .= '</table></div>';
-        // @codingStandardsIgnoreEnd
-
-        return $out;
+        return sprintf(
+            $this->templates['main'],
+            self::COL_POS,
+            $params['row']['sys_language_uid'],
+            $this->getLanguageService()->sL($label),
+            $columnHtml
+        );
     }
 
     /**
@@ -206,9 +221,11 @@ class PageLayoutViewHook
         PageLayoutView $parentObject,
         $items,
         $row
-    ): string {
+    ): string
+    {
         $specificIds = $this->getSpecificIds($row);
         $html = '';
+        $lP = (int)$row['sys_language_uid'];
         $pageInfo = BackendUtility::readPageAccess($parentObject->id, '');
 
         if (!empty($this->getPageLayoutController())
@@ -220,12 +237,12 @@ class PageLayoutViewHook
         }
         if ($contentIsNotLockedForEditors
             && $this->getBackendUser()->doesUserHaveAccess($pageInfo, Permission::CONTENT_EDIT)
-            && (!$this->checkIfTranslationsExistInLanguage($items, $row['sys_language_uid'], $parentObject))
+            && (!$this->checkIfTranslationsExistInLanguage($items, $lP, $parentObject))
         ) {
             if ($parentObject->option_newWizard) {
                 $urlParameters = [
                     'id' => $parentObject->id,
-                    'sys_language_uid' => $row['sys_language_uid'],
+                    'sys_language_uid' => $lP,
                     self::DB_FIELD_CONTAINER_NAME => $specificIds['uid'],
                     'colPos' => self::COL_POS,
                     'uid_pid' => $parentObject->id,
@@ -241,7 +258,7 @@ class PageLayoutViewHook
                     ],
                     'defVals' => [
                         'tt_content' => [
-                            'sys_language_uid' => $row['sys_language_uid'],
+                            'sys_language_uid' => $lP,
                             self::DB_FIELD_CONTAINER_NAME => $specificIds['uid'],
                             'colPos' => self::COL_POS,
                         ],
@@ -252,56 +269,54 @@ class PageLayoutViewHook
             }
         }
 
-        $iconsArray = [];
-
         if (isset($url)) {
-            $iconsArray = [
-                'new' => sprintf(
-                    '<a href="%s" title="%s" class="btn btn-default btn-sm">%s %s</a>',
-                    htmlspecialchars($url),
-                    $this->getLanguageService()->getLL(
-                        'newContentElement',
-                        true
-                    ),
-                    $this->iconFactory->getIcon(
-                        'actions-document-new',
-                        'small'
-                    ),
-                    $this->getLanguageService()->getLL('content', true)
-                )
-            ];
+            $link = sprintf(
+                $this->templates['link'],
+                htmlspecialchars($url),
+                $this->getLanguageService()->getLL(
+                    'newContentElement',
+                    true
+                ),
+                $this->iconFactory->getIcon(
+                    'actions-document-new',
+                    'small'
+                ),
+                $this->getLanguageService()->getLL('content', true)
+            );
         }
 
+        // Start wrapping div
+        $html .= '<div data-colpos="' . self::COL_POS . '" data-language-uid="' . $lP . '" class="t3js-sortable t3js-sortable-lang t3js-sortable-lang-' . $lP . ' t3-page-ce-wrapper';
+        if (empty($items)) {
+            $html .= ' t3-page-ce-empty';
+        }
+        $html .= '">';
+
         $html .= '
-			<div data-language-uid="' . $row['sys_language_uid'] . '" 
-			     class="t3js-sortable t3js-sortable-lang t3js-sortable-lang-' . $row['sys_language_uid'] . ' t3-page-ce-wrapper ui-sortable">
-			    <div class="t3-page-ce t3js-page-ce" 
-			         data-container="' . $row['uid'] . '" 
-			         id="' . str_replace('.', '', uniqid('', true)) . '">
-					<div class="t3js-page-new-ce t3js-page-new-ce-allowed t3-page-ce-wrapper-new-ce btn-group btn-group-sm" 
-					     id="colpos-0-' . str_replace('.', '', uniqid('', true)) . '">' .
-            implode('', $iconsArray) . '
-					</div>
-					<div class="t3-page-ce-dropzone-available t3js-page-ce-dropzone-available"></div>
-				</div>';
+            <div class="t3-page-ce t3js-page-ce" data-page="' . $parentObject->id . '" id="' . StringUtility::getUniqueId() . '">
+                <div class="t3js-page-new-ce t3-page-ce-wrapper-new-ce" id="colpos-' . self::COL_POS . '-' . 'page-' . $id . '-' . StringUtility::getUniqueId() . '">'
+            . ($link ?? '')
+            . '</div>
+                <div class="t3-page-ce-dropzone-available t3js-page-ce-dropzone-available"></div>
+            </div>';
 
         foreach ($items as $item) {
             if ((int)$item['t3ver_state'] === VersionState::DELETE_PLACEHOLDER) {
                 continue;
             }
             if (is_array($item)) {
-                $uid = (int)$item['uid'];
                 $pid = (int)$item['pid'];
                 $container = (int)$item[self::DB_FIELD_CONTAINER_NAME];
                 $language = (int)$item['sys_language_uid'];
                 $statusHidden = $parentObject->isDisabled('tt_content', $item) ? ' t3-page-ce-hidden' : '';
+                $displayNone = !$parentObject->tt_contentConfig['showHidden'] && $statusHidden ?
+                    ' style="display: none;"' : '';
 
                 $html .= '
 				<div class="t3-page-ce t3js-page-ce t3js-page-ce-sortable' . $statusHidden . '" 
-				     data-table="tt_content" id="element-tt_content-' . $uid . '" 
-				     data-uid="' . $uid . '" 
-				     data-container="' . $container . '" 
-				     data-ctype="' . $item['CType'] . '">' .
+				      id="element-tt_content-' . $row['uid'] . '"
+				      data-table="tt_content"
+				      data-uid="' . $item['uid'] . '"' . $displayNone . '>' .
                     $this->renderSingleElementHTML($parentObject, $item) .
                     '</div>';
                 if ($contentIsNotLockedForEditors
@@ -338,30 +353,22 @@ class PageLayoutViewHook
                         ];
                         $url = BackendUtility::getModuleUrl('record_edit', $urlParameters);
                     }
-                    $iconsArray = [
-                        'new' => '<a 
-                                href="' . htmlspecialchars($url) . '" 
-                                title="' . $this->getLanguageService()->getLL('newContentElement', true) . '" 
-                                class="btn btn-default btn-sm">' .
-                            $this->iconFactory->getIcon('actions-document-new', 'small') . ' ' .
-                            $this->getLanguageService()->getLL('content', true) .
-                            '</a>',
-                    ];
+                    $link = sprintf(
+                        $this->templates['link'],
+                        htmlspecialchars($url),
+                        $this->getLanguageService()->getLL('newContentElement', true),
+                        $this->iconFactory->getIcon('actions-document-new', 'small'),
+                        $this->getLanguageService()->getLL('content', true)
+                    );
+
+                    $html .= '
+                    <div class="t3js-page-new-ce t3js-page-new-ce-allowed t3-page-ce-wrapper-new-ce btn-group btn-group-sm"'
+                        . 'id="colpos-' . self::COL_POS . '-page-' . $pid . '-' . StringUtility::getUniqueId() . '">'
+                        . $link . '
+                     </div>';
                 }
 
-                $html .= '
-                        <div class="t3-page-ce">
-                            <div class="t3js-page-new-ce t3js-page-new-ce-allowed t3-page-ce-wrapper-new-ce btn-group btn-group-sm" 
-                                 id="colpos-0' .
-                    '-page-' . $pid .
-                    '-gridcontainer-' . $container .
-                    '-' . str_replace('.', '', uniqid('', true)) . '">' .
-                    implode('', $iconsArray) . '
-                            </div>
-                        </div>
-                        <div class="t3-page-ce-dropzone-available t3js-page-ce-dropzone-available"></div>
-                    </div>
-					';
+                $html .= '<div class="t3-page-ce-dropzone-available t3js-page-ce-dropzone-available"></div></div>';
             }
         }
 
@@ -442,16 +449,14 @@ class PageLayoutViewHook
          * Build up caches
          */
         if (!isset($this->languageHasTranslationsCache[$language])) {
-            foreach ($contentElements as $columns) {
-                foreach ($columns as $contentElement) {
-                    if ((int)$contentElement['l18n_parent'] === 0) {
-                        $this->languageHasTranslationsCache[$language]['hasStandAloneContent'] = true;
-                        $this->languageHasTranslationsCache[$language]['mode'] = 'free';
-                    }
-                    if ((int)$contentElement['l18n_parent'] > 0) {
-                        $this->languageHasTranslationsCache[$language]['hasTranslations'] = true;
-                        $this->languageHasTranslationsCache[$language]['mode'] = 'connected';
-                    }
+            foreach ($contentElements as $contentElement) {
+                if ((int)$contentElement['l18n_parent'] === 0) {
+                    $this->languageHasTranslationsCache[$language]['hasStandAloneContent'] = true;
+                    $this->languageHasTranslationsCache[$language]['mode'] = 'free';
+                }
+                if ((int)$contentElement['l18n_parent'] > 0) {
+                    $this->languageHasTranslationsCache[$language]['hasTranslations'] = true;
+                    $this->languageHasTranslationsCache[$language]['mode'] = 'connected';
                 }
             }
             // Check whether we have a mix of both

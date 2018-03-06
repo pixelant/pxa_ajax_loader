@@ -40,7 +40,7 @@ PxaAjaxLoader = (function () {
                 this._sendAjax(
                     element.getAttribute('data-ajax-url'),
                     function (responseText) {
-                        if (responseText !== '') {
+                        if (typeof responseText === 'string') {
                             element.innerHTML = responseText;
                         }
                     }
