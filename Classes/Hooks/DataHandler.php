@@ -49,7 +49,7 @@ class DataHandler
      *
      * @param string $command
      * @param string $table
-     * @param $uid
+     * @param int $uid
      * @param $value
      * @param \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
      */
@@ -74,6 +74,50 @@ class DataHandler
                     ['uid' => $uid],
                     [Connection::PARAM_INT]
                 );
+            }
+        }
+    }
+
+    /**
+     * If plugin was delete, delete children content
+     *
+     * @param string $table
+     * @param int $id
+     * @param array $recordToDelete
+     */
+    public function processCmdmap_deleteAction(string $table, $id, array $recordToDelete)
+    {
+        if ($table === 'tt_content'
+            && $recordToDelete['CType'] === 'list'
+            && $recordToDelete['list_type'] === 'pxaajaxloader_loader'
+        ) {
+            $queryBuilder = $this->getQueryBuilder('tt_content');
+            $statement = $queryBuilder
+                ->select('uid')
+                ->from('tt_content')
+                ->where(
+                    $queryBuilder->expr()->eq(
+                        PageLayoutViewHook::DB_FIELD_CONTAINER_NAME,
+                        $queryBuilder->createNamedParameter($id, Connection::PARAM_INT)
+                    ),
+                    $queryBuilder->expr()->eq(
+                        'sys_language_uid',
+                        $queryBuilder->createNamedParameter($recordToDelete['sys_language_uid'], Connection::PARAM_INT)
+                    )
+                )
+                ->execute();
+
+            $cmd = [];
+
+            while ($row = $statement->fetch()) {
+                $cmd['tt_content'][$row['uid']]['delete'] = true;
+            }
+
+            if (!empty($cmd)) {
+                /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler */
+                $dataHandler = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
+                $dataHandler->start([], $cmd);
+                $dataHandler->process_cmdmap();
             }
         }
     }
@@ -114,6 +158,17 @@ class DataHandler
         }
 
         return 0;
+    }
+
+    /**
+     * Get query builder
+     *
+     * @param string $table
+     * @return QueryBuilder
+     */
+    protected function getQueryBuilder(string $table): QueryBuilder
+    {
+        return GeneralUtility::makeInstance(ConnectionPool::class)->getQueryBuilderForTable($table);
     }
 
     /**
