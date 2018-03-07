@@ -39,7 +39,8 @@ PxaAjaxLoader = (function () {
 
                 this._sendAjax(
                     element.getAttribute('data-ajax-url'),
-                    function (responseText) {
+	                element,
+                    function (element, responseText) {
                         if (typeof responseText === 'string') {
                             element.innerHTML = responseText;
                         }
@@ -52,16 +53,17 @@ PxaAjaxLoader = (function () {
          * Send ajax request
          *
          * @param url
+         * @param element
          * @param callback
          * @private
          */
-        _sendAjax: function (url, callback) {
+        _sendAjax: function (url, element, callback) {
             var x = this._getXhr();
 
             x.open('GET', url, true);
             x.onreadystatechange = function () {
                 if (x.readyState === 4 && x.status === 200) {
-                    callback(x.responseText);
+                    callback(element, x.responseText);
                 }
             };
             x.send()
