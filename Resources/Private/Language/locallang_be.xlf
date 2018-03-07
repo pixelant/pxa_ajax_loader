@@ -15,6 +15,9 @@
             <trans-unit id="tca.field">
                 <source>Ajax plugin</source>
             </trans-unit>
+            <trans-unit id="tca.colPos">
+                <source>Ajax content</source>
+            </trans-unit>
         </body>
     </file>
 </xliff>

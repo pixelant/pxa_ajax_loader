@@ -39,6 +39,11 @@ class PageLayoutViewHook
      */
     const COL_POS = -98;
 
+    /**
+     * HTML templates
+     *
+     * @var array
+     */
     protected $templates = [
         'main' => '
 <div class="t3-grid-container">
@@ -46,7 +51,7 @@ class PageLayoutViewHook
        <colgroup><col></colgroup>
        <tbody>
             <tr>
-                <td valign="top" colspan="1" rowspan="1" data-colpos="%1$d" data-language-uid="%2$d" class="t3js-page-lang-column-%2$d t3js-page-column t3-grid-cell t3-page-column">
+                <td valign="top" colspan="1" rowspan="1" data-colpos="%1$s" data-language-uid="%2$d" class="t3js-page-lang-column-%2$d t3js-page-column t3-grid-cell t3-page-column">
                     <div class="t3-page-column-header">%3$s</div>
                     %4$s
                 </td>
@@ -106,7 +111,7 @@ class PageLayoutViewHook
 
         return sprintf(
             $this->templates['main'],
-            self::COL_POS,
+            $this->getSpecificColPosUid($params['row']),
             $params['row']['sys_language_uid'],
             $this->getLanguageService()->sL($label),
             $columnHtml
@@ -221,8 +226,7 @@ class PageLayoutViewHook
         PageLayoutView $parentObject,
         $items,
         $row
-    ): string
-    {
+    ): string {
         $specificIds = $this->getSpecificIds($row);
         $html = '';
         $lP = (int)$row['sys_language_uid'];
@@ -286,7 +290,7 @@ class PageLayoutViewHook
         }
 
         // Start wrapping div
-        $html .= '<div data-colpos="' . self::COL_POS . '" data-language-uid="' . $lP . '" class="t3js-sortable t3js-sortable-lang t3js-sortable-lang-' . $lP . ' t3-page-ce-wrapper';
+        $html .= '<div data-colpos="' . $this->getSpecificColPosUid($row) . '" data-language-uid="' . $lP . '" class="t3js-sortable t3js-sortable-lang t3js-sortable-lang-' . $lP . ' t3-page-ce-wrapper';
         if (empty($items)) {
             $html .= ' t3-page-ce-empty';
         }
@@ -420,6 +424,17 @@ class PageLayoutViewHook
         }
 
         return $specificIds;
+    }
+
+    /**
+     * Special colPos
+     *
+     * @param array $row
+     * @return string
+     */
+    public function getSpecificColPosUid(array $row): string
+    {
+        return self::COL_POS . '|' . $row['uid'];
     }
 
     /**

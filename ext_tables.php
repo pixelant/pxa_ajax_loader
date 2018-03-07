@@ -22,5 +22,11 @@ if (TYPO3_MODE === 'BE') {
 
     // New item link hook
     $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['cms']['db_new_content_el']['wizardItemsHook'][$_EXTKEY] = \Pixelant\PxaAjaxLoader\Hooks\WizardItems::class;
+
+    // Register data handler hook
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processDatamapClass'][$_EXTKEY] =
+        \Pixelant\PxaAjaxLoader\Hooks\DataHandler::class;
+    $GLOBALS['TYPO3_CONF_VARS']['SC_OPTIONS']['t3lib/class.t3lib_tcemain.php']['processCmdmapClass'][$_EXTKEY] =
+        \Pixelant\PxaAjaxLoader\Hooks\DataHandler::class;
     // @codingStandardsIgnoreEnd
 }

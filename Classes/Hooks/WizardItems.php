@@ -23,10 +23,16 @@ class WizardItems implements NewContentElementWizardHookInterface
     public function manipulateWizardItems(&$wizardItems, &$parentObject)
     {
         $container = (int)GeneralUtility::_GP(PageLayoutViewHook::DB_FIELD_CONTAINER_NAME);
+
         if ($container === 0) {
             return;
         }
+
         foreach ($wizardItems as $key => $wizardItem) {
+            if ($key === 'plugins_plugins_tx_pxaajaxloader_loader') {
+                unset($wizardItems[$key]);
+                continue;
+            }
             if (!$wizardItems[$key]['header']) {
                 $wizardItems[$key]['tt_content_defValues'][PageLayoutViewHook::DB_FIELD_CONTAINER_NAME] = (int)$container;
                 $wizardItems[$key]['params'] .= '&defVals[tt_content][' . PageLayoutViewHook::DB_FIELD_CONTAINER_NAME . ']=' . (int)$container;
