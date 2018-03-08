@@ -7,6 +7,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
@@ -29,7 +30,8 @@ class DataHandler
         string $table,
         $uid,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
-    ) {
+    )
+    {
         if ($table === 'tt_content' && isset($fields['colPos']) && is_string($fields['colPos'])) {
             $ajaxContainer = $this->determinateAjaxContainer($fields['colPos']);
 
@@ -59,7 +61,8 @@ class DataHandler
         $uid,
         $value,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
-    ) {
+    )
+    {
         if ($command === 'move' && $table === 'tt_content') {
             $value = (int)$value;
 
@@ -78,6 +81,63 @@ class DataHandler
         }
     }
 
+    public function processCmdmap_postProcess(
+        string $command,
+        string $table,
+        $uid,
+        $value,
+        \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
+    ) {
+        if ($command === 'copy' && $table === 'tt_content') {
+            $record = BackendUtility::getRecord('tt_content', $uid);
+
+            if ($record['CType'] !== 'list'
+                || $record['list_type'] !== 'pxaajaxloader_loader') {
+                return;
+            }
+
+            $procId = $pObj->copyMappingArray[$table][$uid];
+
+            $statement = $this->getAjaxContainerElements($record);
+            $contentUids = [];
+            $cmd = [];
+
+            while ($row = $statement->fetch()) {
+                $cmd['tt_content'][$row['uid']]['copy'] = (int)$value;
+                $contentUids[] = $row['uid'];
+            }
+
+            if (!empty($cmd)) {
+                /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler */
+                $dataHandler = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
+                $dataHandler->start([], $cmd);
+                $dataHandler->process_cmdmap();
+
+                $copiesUids = [];
+                foreach ($contentUids as $contentUid) {
+                    $copiesUids[] = $dataHandler->copyMappingArray_merged[$table][$contentUid];
+                }
+                if (!empty($copiesUids)) {
+                    $queryBuilder = $this->getQueryBuilder($table);
+                    $queryBuilder
+                        ->update($table)
+                        ->where(
+                            $queryBuilder->expr()->in(
+                                'uid',
+                                $queryBuilder->createNamedParameter(
+                                    $copiesUids,
+                                    Connection::PARAM_INT_ARRAY
+                                )
+                            )
+                        )
+                        ->set(PageLayoutViewHook::DB_FIELD_CONTAINER_NAME, $procId)
+                        ->set($GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'], 0)
+                        ->execute();
+                }
+            }
+        }
+    }
+
     /**
      * If plugin was delete, delete children content
      *
@@ -91,23 +151,8 @@ class DataHandler
             && $recordToDelete['CType'] === 'list'
             && $recordToDelete['list_type'] === 'pxaajaxloader_loader'
         ) {
-            $queryBuilder = $this->getQueryBuilder('tt_content');
-            $statement = $queryBuilder
-                ->select('uid')
-                ->from('tt_content')
-                ->where(
-                    $queryBuilder->expr()->eq(
-                        PageLayoutViewHook::DB_FIELD_CONTAINER_NAME,
-                        $queryBuilder->createNamedParameter($id, Connection::PARAM_INT)
-                    ),
-                    $queryBuilder->expr()->eq(
-                        'sys_language_uid',
-                        $queryBuilder->createNamedParameter($recordToDelete['sys_language_uid'], Connection::PARAM_INT)
-                    )
-                )
-                ->execute();
-
             $cmd = [];
+            $statement = $this->getAjaxContainerElements($recordToDelete);
 
             while ($row = $statement->fetch()) {
                 $cmd['tt_content'][$row['uid']]['delete'] = true;
@@ -120,6 +165,33 @@ class DataHandler
                 $dataHandler->process_cmdmap();
             }
         }
+    }
+
+    /**
+     * Get elements for container
+     *
+     * @param array $ajaxContainerRow
+     * @return \Doctrine\DBAL\Driver\Statement|int
+     */
+    protected function getAjaxContainerElements(array $ajaxContainerRow)
+    {
+        $queryBuilder = $this->getQueryBuilder('tt_content');
+        $queryBuilder->getRestrictions()->removeAll()->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+
+        return $queryBuilder
+            ->select('uid', 'pid')
+            ->from('tt_content')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    PageLayoutViewHook::DB_FIELD_CONTAINER_NAME,
+                    $queryBuilder->createNamedParameter($ajaxContainerRow['uid'], Connection::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    'sys_language_uid',
+                    $queryBuilder->createNamedParameter($ajaxContainerRow['sys_language_uid'], Connection::PARAM_INT)
+                )
+            )
+            ->execute();
     }
 
     /**
