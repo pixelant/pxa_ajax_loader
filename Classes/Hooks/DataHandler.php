@@ -8,14 +8,22 @@ use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
+use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Class DataHandler
  * @package Pixelant\PxaAjaxLoader\Hooks
  */
-class DataHandler
+class DataHandler implements SingletonInterface
 {
+    /**
+     * Keep old PID value of container
+     *
+     * @var array
+     */
+    protected $moveAjaxContainerPid = [];
+
     /**
      * Need to set ajax container from colPos added in PageLayoutViewHook
      * for drag and drop function
@@ -30,8 +38,7 @@ class DataHandler
         string $table,
         $uid,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
-    )
-    {
+    ) {
         if ($table === 'tt_content' && isset($fields['colPos']) && is_string($fields['colPos'])) {
             $ajaxContainer = $this->determinateAjaxContainer($fields['colPos']);
 
@@ -39,7 +46,7 @@ class DataHandler
             if ($ajaxContainer > 0) {
                 $fields['colPos'] = PageLayoutViewHook::COL_POS;
                 $fields[PageLayoutViewHook::DB_FIELD_CONTAINER_NAME] = $ajaxContainer;
-            } else {
+            } elseif (!isset($fields[PageLayoutViewHook::DB_FIELD_CONTAINER_NAME])) {
                 // Reset container
                 $fields[PageLayoutViewHook::DB_FIELD_CONTAINER_NAME] = 0;
             }
@@ -47,7 +54,7 @@ class DataHandler
     }
 
     /**
-     * This will fix container ID on pastAfter context menu action
+     * This will fix container ID on pastAfter context menu action and move container action
      *
      * @param string $command
      * @param string $table
@@ -61,10 +68,16 @@ class DataHandler
         $uid,
         $value,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
-    )
-    {
+    ) {
         if ($command === 'move' && $table === 'tt_content') {
             $value = (int)$value;
+
+            $record = BackendUtility::getRecord('tt_content', $uid, 'pid,CType,list_type');
+
+            if ($record['CType'] === 'list'
+                && $record['list_type'] === 'pxaajaxloader_loader') {
+                $this->moveAjaxContainerPid[$uid] = $record['pid'];
+            }
 
             if ($value < 0) {
                 // Copy ajax container from target element
@@ -81,6 +94,16 @@ class DataHandler
         }
     }
 
+    /**
+     * If ajax container copied, copy all it's elements
+     * If moved, set new pid for elements
+     *
+     * @param string $command
+     * @param string $table
+     * @param $uid
+     * @param $value
+     * @param \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
+     */
     public function processCmdmap_postProcess(
         string $command,
         string $table,
@@ -131,9 +154,35 @@ class DataHandler
                             )
                         )
                         ->set(PageLayoutViewHook::DB_FIELD_CONTAINER_NAME, $procId)
-                        ->set($GLOBALS['TCA'][$table]['ctrl']['enablecolumns']['disabled'], 0)
+                        ->set('colPos', PageLayoutViewHook::COL_POS)
                         ->execute();
                 }
+            }
+        } elseif ($command === 'move' && $table === 'tt_content') {
+            $record = BackendUtility::getRecord('tt_content', $uid);
+
+            if ($record['CType'] !== 'list'
+                || $record['list_type'] !== 'pxaajaxloader_loader') {
+                return;
+            }
+
+            $newPid = $record['pid'];
+
+            // Restore old pid to get elements
+            $record['pid'] = $this->moveAjaxContainerPid[$uid];
+            // Move to new pid
+            $statement = $this->getAjaxContainerElements($record);
+            $cmd = [];
+
+            while ($row = $statement->fetch()) {
+                $cmd['tt_content'][$row['uid']]['move'] = $newPid;
+            }
+
+            if (!empty($cmd)) {
+                /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler */
+                $dataHandler = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
+                $dataHandler->start([], $cmd);
+                $dataHandler->process_cmdmap();
             }
         }
     }
