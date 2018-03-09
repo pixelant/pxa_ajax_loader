@@ -6,10 +6,6 @@ defined('TYPO3_MODE') || die('Access denied');
     'Loader',
     [
         'AjaxLoader' => 'placeholder, load'
-    ],
-    // non-cacheable actions
-    [
-        'AjaxLoader' => 'load'
     ]
 );
 
