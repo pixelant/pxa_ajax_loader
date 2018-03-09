@@ -217,7 +217,7 @@ class DataHandler implements SingletonInterface
                 if ($command === 'copyToLanguage') {
                     $field = $GLOBALS['TCA']['tt_content']['ctrl']['translationSource'];
                 } elseif ($command === 'localize') {
-                    $field = $GLOBALS['TCA']['tt_content']['ctrl']['traqqnsOrigPointerField'];
+                    $field = $GLOBALS['TCA']['tt_content']['ctrl']['transOrigPointerField'];
                 }
                 $value = (int)$value;
 
