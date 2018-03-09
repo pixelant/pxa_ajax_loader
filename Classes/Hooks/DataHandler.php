@@ -7,6 +7,7 @@ use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Core\Database\Connection;
 use TYPO3\CMS\Core\Database\ConnectionPool;
 use TYPO3\CMS\Core\Database\Query\QueryBuilder;
+use TYPO3\CMS\Core\Database\Query\Restriction\BackendWorkspaceRestriction;
 use TYPO3\CMS\Core\Database\Query\Restriction\DeletedRestriction;
 use TYPO3\CMS\Core\SingletonInterface;
 use TYPO3\CMS\Core\Utility\GeneralUtility;
@@ -38,7 +39,8 @@ class DataHandler implements SingletonInterface
         string $table,
         $uid,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
-    ) {
+    )
+    {
         if ($table === 'tt_content' && isset($fields['colPos']) && is_string($fields['colPos'])) {
             $ajaxContainer = $this->determinateAjaxContainer($fields['colPos']);
 
@@ -68,7 +70,8 @@ class DataHandler implements SingletonInterface
         $uid,
         $value,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
-    ) {
+    )
+    {
         if ($command === 'move' && $table === 'tt_content') {
             $value = (int)$value;
 
@@ -110,8 +113,10 @@ class DataHandler implements SingletonInterface
         $uid,
         $value,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
-    ) {
+    )
+    {
         if ($command === 'copy' && $table === 'tt_content') {
+            // Copy conteiner elements to new one
             $record = BackendUtility::getRecord('tt_content', $uid);
 
             if ($record['CType'] !== 'list'
@@ -122,12 +127,12 @@ class DataHandler implements SingletonInterface
             $procId = $pObj->copyMappingArray[$table][$uid];
 
             $statement = $this->getAjaxContainerElements($record);
-            $contentUids = [];
+            $contentRows = [];
             $cmd = [];
 
             while ($row = $statement->fetch()) {
                 $cmd['tt_content'][$row['uid']]['copy'] = (int)$value;
-                $contentUids[] = $row['uid'];
+                $contentRows[] = $row['uid'];
             }
 
             if (!empty($cmd)) {
@@ -137,8 +142,8 @@ class DataHandler implements SingletonInterface
                 $dataHandler->process_cmdmap();
 
                 $copiesUids = [];
-                foreach ($contentUids as $contentUid) {
-                    $copiesUids[] = $dataHandler->copyMappingArray_merged[$table][$contentUid];
+                foreach ($contentRows as $contentRow) {
+                    $copiesUids[] = $dataHandler->copyMappingArray_merged[$table][$contentRow];
                 }
                 if (!empty($copiesUids)) {
                     $queryBuilder = $this->getQueryBuilder($table);
@@ -159,6 +164,7 @@ class DataHandler implements SingletonInterface
                 }
             }
         } elseif ($command === 'move' && $table === 'tt_content') {
+            // Move container elements within container
             $record = BackendUtility::getRecord('tt_content', $uid);
 
             if ($record['CType'] !== 'list'
@@ -183,6 +189,64 @@ class DataHandler implements SingletonInterface
                 $dataHandler = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
                 $dataHandler->start([], $cmd);
                 $dataHandler->process_cmdmap();
+            }
+        } elseif (($command === 'copyToLanguage' || $command === 'localize') && $table === 'tt_content') {
+            // Copy to language container elements within container
+            $record = BackendUtility::getRecord('tt_content', $uid);
+
+            if ($record['CType'] !== 'list'
+                || $record['list_type'] !== 'pxaajaxloader_loader') {
+                return;
+            }
+
+            $statement = $this->getAjaxContainerElements($record);
+            $cmd = [];
+            $contentRows = [];
+
+            while ($row = $statement->fetch()) {
+                $cmd['tt_content'][$row['uid']][$command] = $value;
+                $contentRows[] = $row;
+            }
+
+            if (!empty($cmd)) {
+                /** @var \TYPO3\CMS\Core\DataHandling\DataHandler $dataHandler */
+                $dataHandler = GeneralUtility::makeInstance(\TYPO3\CMS\Core\DataHandling\DataHandler::class);
+                $dataHandler->start([], $cmd);
+                $dataHandler->process_cmdmap();
+
+                if ($command === 'copyToLanguage') {
+                    $field = $GLOBALS['TCA']['tt_content']['ctrl']['translationSource'];
+                } elseif ($command === 'localize') {
+                    $field = $GLOBALS['TCA']['tt_content']['ctrl']['traqqnsOrigPointerField'];
+                }
+                $value = (int)$value;
+
+                $localizedContainer = $this->getContentLocalization($record, $field ?? '', $value);
+                $localizedElementsUids = [];
+
+                foreach ($contentRows as $contentRow) {
+                    $localizedElement = $this->getContentLocalization($contentRow, $field ?? '', $value);
+                    if ($localizedElement !== false) {
+                        $localizedElementsUids[] = $localizedElement['uid'];
+                    }
+                }
+                if (!empty($localizedElementsUids)) {
+                    $queryBuilder = $this->getQueryBuilder($table);
+                    $queryBuilder
+                        ->update($table)
+                        ->where(
+                            $queryBuilder->expr()->in(
+                                'uid',
+                                $queryBuilder->createNamedParameter(
+                                    $localizedElementsUids,
+                                    Connection::PARAM_INT_ARRAY
+                                )
+                            )
+                        )
+                        ->set(PageLayoutViewHook::DB_FIELD_CONTAINER_NAME, $localizedContainer['uid'])
+                        ->set('colPos', PageLayoutViewHook::COL_POS)
+                        ->execute();
+                }
             }
         }
     }
@@ -225,7 +289,9 @@ class DataHandler implements SingletonInterface
     protected function getAjaxContainerElements(array $ajaxContainerRow)
     {
         $queryBuilder = $this->getQueryBuilder('tt_content');
-        $queryBuilder->getRestrictions()->removeAll()->add(GeneralUtility::makeInstance(DeletedRestriction::class));
+        $queryBuilder->getRestrictions()->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
+            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
 
         return $queryBuilder
             ->select('uid', 'pid')
@@ -279,6 +345,45 @@ class DataHandler implements SingletonInterface
         }
 
         return 0;
+    }
+
+    /**
+     * Fetches the localization for a given content element.
+     *
+     * @param array $originRow
+     * @param string $translationPointerField
+     * @param int $language
+     * @return array|bool Localized record or false on fail
+     */
+    public function getContentLocalization(array $originRow, string $translationPointerField, int $language)
+    {
+        $queryBuilder = $this->getQueryBuilder('tt_content');
+        $queryBuilder->getRestrictions()
+            ->removeAll()
+            ->add(GeneralUtility::makeInstance(DeletedRestriction::class))
+            ->add(GeneralUtility::makeInstance(BackendWorkspaceRestriction::class));
+
+        $queryBuilder->select('*')
+            ->from('tt_content')
+            ->where(
+                $queryBuilder->expr()->eq(
+                    $translationPointerField,
+                    $queryBuilder->createNamedParameter((int)$originRow['uid'], \PDO::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    'pid',
+                    $queryBuilder->createNamedParameter((int)$originRow['pid'], \PDO::PARAM_INT)
+                ),
+                $queryBuilder->expr()->eq(
+                    $GLOBALS['TCA']['tt_content']['ctrl']['languageField'],
+                    $queryBuilder->createNamedParameter($language, \PDO::PARAM_INT)
+                )
+            )
+            ->setMaxResults(1);
+
+        $result = $queryBuilder->execute()->fetchAll();
+
+        return is_array($result) ? $result[0] : false;
     }
 
     /**
