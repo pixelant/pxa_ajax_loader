@@ -58,3 +58,33 @@ PXA_AJAX_LOADER {
         }
     }
 }
+
+# Lib to render TypoScript content with ajax
+lib.pxaAjaxLoader = COA
+lib.pxaAjaxLoader {
+    10 = TEXT
+    10 {
+        typolink {
+            parameter.dataWrap = {TSFE|id},{$plugin.tx_pxaajaxloader.settings.pageType}
+            additionalParams = &tx_pxaajaxloader_loader[typoscriptObject]=
+            additionalParams.dataWrap = |{field:typoscriptObjectPath}
+
+            returnLast = url
+            useCacheHash = 1
+        }
+        wrap (
+<div class="loading-in-progress" data-ajax-loader="1" data-ajax-url="|">
+    <div id="circularG">
+        <div id="circularG_1" class="circularG"></div>
+        <div id="circularG_2" class="circularG"></div>
+        <div id="circularG_3" class="circularG"></div>
+        <div id="circularG_4" class="circularG"></div>
+        <div id="circularG_5" class="circularG"></div>
+        <div id="circularG_6" class="circularG"></div>
+        <div id="circularG_7" class="circularG"></div>
+        <div id="circularG_8" class="circularG"></div>
+    </div>
+</div>
+)
+    }
+}
