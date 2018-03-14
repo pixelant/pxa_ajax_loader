@@ -4,7 +4,10 @@ declare(strict_types=1);
 namespace Pixelant\PxaAjaxLoader\Controller;
 
 use Pixelant\PxaAjaxLoader\Hooks\PageLayoutViewHook;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3\CMS\Extbase\Configuration\ConfigurationManagerInterface;
 use TYPO3\CMS\Extbase\Mvc\Controller\ActionController;
+use TYPO3\CMS\Frontend\ContentObject\ContentObjectRenderer;
 use TYPO3\CMS\Frontend\Controller\TypoScriptFrontendController;
 
 /**
@@ -49,12 +52,68 @@ class AjaxLoaderController extends ActionController
     /**
      * Load content
      *
-     * @param int $pluginUid
+     * @param int $pluginUid Container plugin uid
+     * @param string $typoscriptObject
      * @return void
      */
-    public function loadAction(int $pluginUid)
+    public function loadAction(int $pluginUid = 0, string $typoscriptObject = '')
     {
-        $this->view->assign('html', $this->renderAjaxContent($pluginUid));
+        $html = '';
+        if ($pluginUid > 0) {
+            $html .= $this->renderAjaxContentOfPlugin($pluginUid);
+        } elseif (!empty($typoscriptObject)) {
+            $html .= $this->renderTypoScriptObject($typoscriptObject);
+        }
+
+        $this->view->assign('html', $html);
+    }
+
+    /**
+     * Render typoscript object
+     *
+     * @param string $typoscriptObject
+     * @return string
+     */
+    protected function renderTypoScriptObject(string $typoscriptObject): string
+    {
+        $typoScriptSetup = $this->getTypoScriptSetup();
+        $typoscriptObjectSegments = GeneralUtility::trimExplode('.', $typoscriptObject, true);
+
+        do {
+            $pathSegment = array_shift($typoscriptObjectSegments);
+            $countSegments = count($typoscriptObjectSegments);
+
+            if (array_key_exists($pathSegment . '.', $typoScriptSetup)) {
+                if ($countSegments !== 0) {
+                    $typoScriptSetup = $typoScriptSetup[$pathSegment . '.'];
+                }
+            } else {
+                // If at lest one doesn't exist, then path is wrong
+                return '';
+            }
+        } while ($countSegments > 0);
+
+        /** @var ContentObjectRenderer $contentObjectRenderer */
+        $contentObjectRenderer = $this->objectManager->get(ContentObjectRenderer::class);
+
+        return $contentObjectRenderer->cObjGetSingle(
+            $typoScriptSetup[$pathSegment],
+            $typoScriptSetup[$pathSegment . '.']
+        );
+    }
+
+    /**
+     * Get typoscript configuration
+     *
+     * @return array
+     */
+    protected function getTypoScriptSetup(): array
+    {
+        /** @var ConfigurationManagerInterface $configurationManager */
+        $configurationManager = $this->objectManager->get(ConfigurationManagerInterface::class);
+        return $configurationManager->getConfiguration(
+            ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT
+        );
     }
 
     /**
@@ -63,11 +122,11 @@ class AjaxLoaderController extends ActionController
      * @param int $pluginUid
      * @return string
      * @throws \Exception
-     * @throws \TYPO3\CMS\Frontend\ContentObject\Exception\ContentRenderingException
      */
-    protected function renderAjaxContent(int $pluginUid)
+    protected function renderAjaxContentOfPlugin(int $pluginUid): string
     {
         $content = '';
+
         $cObj = $this->configurationManager->getContentObject();
         /** @var TypoScriptFrontendController $tsfe */
         $tsfe = $GLOBALS['TSFE'];
