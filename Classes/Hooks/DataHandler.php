@@ -34,13 +34,13 @@ class DataHandler implements SingletonInterface
      * @param $uid
      * @param \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
      */
-    public function processDatamap_preProcessFieldArray(
+    // @codingStandardsIgnoreStart
+    public function processDatamap_preProcessFieldArray(// @codingStandardsIgnoreEnd
         array &$fields,
         string $table,
         $uid,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
-    )
-    {
+    ) {
         if ($table === 'tt_content' && isset($fields['colPos']) && is_string($fields['colPos'])) {
             $ajaxContainer = $this->determinateAjaxContainer($fields['colPos']);
 
@@ -64,14 +64,14 @@ class DataHandler implements SingletonInterface
      * @param $value
      * @param \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
      */
-    public function processCmdmap_preProcess(
+    // @codingStandardsIgnoreStart
+    public function processCmdmap_preProcess(// @codingStandardsIgnoreEnd
         string $command,
         string $table,
         $uid,
         $value,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
-    )
-    {
+    ) {
         if ($command === 'move' && $table === 'tt_content') {
             $value = (int)$value;
 
@@ -107,14 +107,14 @@ class DataHandler implements SingletonInterface
      * @param $value
      * @param \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
      */
-    public function processCmdmap_postProcess(
+    // @codingStandardsIgnoreStart
+    public function processCmdmap_postProcess(// @codingStandardsIgnoreEnd
         string $command,
         string $table,
         $uid,
         $value,
         \TYPO3\CMS\Core\DataHandling\DataHandler $pObj
-    )
-    {
+    ) {
         if ($command === 'copy' && $table === 'tt_content') {
             // Copy conteiner elements to new one
             $record = BackendUtility::getRecord('tt_content', $uid);
@@ -258,7 +258,8 @@ class DataHandler implements SingletonInterface
      * @param int $id
      * @param array $recordToDelete
      */
-    public function processCmdmap_deleteAction(string $table, $id, array $recordToDelete)
+    // @codingStandardsIgnoreStart
+    public function processCmdmap_deleteAction(string $table, $id, array $recordToDelete)// @codingStandardsIgnoreEnd
     {
         if ($table === 'tt_content'
             && $recordToDelete['CType'] === 'list'

@@ -93,10 +93,7 @@ class AjaxLoaderController extends ActionController
             }
         } while ($countSegments > 0);
 
-        /** @var ContentObjectRenderer $contentObjectRenderer */
-        $contentObjectRenderer = $this->objectManager->get(ContentObjectRenderer::class);
-
-        return $contentObjectRenderer->cObjGetSingle(
+        return $this->getContentObjectRenderer()->cObjGetSingle(
             $typoScriptSetup[$pathSegment],
             $typoScriptSetup[$pathSegment . '.']
         );
@@ -114,6 +111,16 @@ class AjaxLoaderController extends ActionController
         return $configurationManager->getConfiguration(
             ConfigurationManagerInterface::CONFIGURATION_TYPE_FULL_TYPOSCRIPT
         );
+    }
+
+    /**
+     * Wrapper for testing
+     *
+     * @return ContentObjectRenderer|object
+     */
+    protected function getContentObjectRenderer(): ContentObjectRenderer
+    {
+        return $this->objectManager->get(ContentObjectRenderer::class);
     }
 
     /**
