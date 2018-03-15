@@ -548,7 +548,8 @@ class PageLayoutViewHook
      * @return string HTML of the footer
      * @throws \UnexpectedValueException
      */
-    protected function tt_content_drawFooter(PageLayoutView $parentObject, array $row): string
+    // @codingStandardsIgnoreStart
+    protected function tt_content_drawFooter(PageLayoutView $parentObject, array $row): string// @codingStandardsIgnoreEnd
     {
         $content = '';
         // Get processed values:

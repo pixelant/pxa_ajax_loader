@@ -1,5 +1,6 @@
 <?php
 namespace Pixelant\PxaAjaxLoader\Tests\Unit\Hooks;
+
 use PHPUnit\Framework\TestCase;
 use Pixelant\PxaAjaxLoader\Hooks\WizardItems;
 use TYPO3\CMS\Backend\Controller\ContentElement\NewContentElementController;

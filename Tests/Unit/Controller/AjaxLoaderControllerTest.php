@@ -1,6 +1,7 @@
 <?php
 
 namespace Pixelant\PxaAjaxLoader\Tests\Unit\Controller;
+
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Pixelant\PxaAjaxLoader\Controller\AjaxLoaderController;
